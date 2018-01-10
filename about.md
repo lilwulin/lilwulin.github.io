@@ -4,7 +4,7 @@ title: About
 permalink: /about/
 ---
 
-My name is Lin Wu(吴霖) and I am a student at Carnegie Mellon University.
+My name is Lin Wu(吴霖) and I am a master student at Carnegie Mellon University.
 
 ### Contact me
 
