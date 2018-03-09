@@ -15,24 +15,24 @@ HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入�
 *Figure 1: HBase LSM Tree write path*
 
 
-值得注意的是，由于LSM Tree的使用，我们不能立即删除一个键值对。所以删除操作其实是在键值对上标记一个**tombstone**，这样在之后的**compaction**过程中它再被”垃圾回收“掉。我们接下来讲解一下**compaction**的过程。
+值得注意的是，由于LSM Tree的使用，我们不能立即删除一个键值对。所以删除操作其实是在键值对上标记一个tombstone，这样在之后的compaction过程中它再被”垃圾回收“掉。我们接下来讲解一下compaction的过程。
 
-在之前的博文我们也提到，由于键值对可能同时存在于内存以及硬盘的多个HFile中，服务器在查找键值对的时候要先从最新的部分一直查找到最旧的部分，也就是先从内存中查找，再从新到旧遍历硬盘上的HFile。随着HFile的不断增多，查找的过程会越来越慢，所以服务器需要定期地对多个HFile进行compaction，来减少HFile的查找数量。在HBase中，有两种compaction。一种是**minor compaction**，它每次只会将两个或多个小的HFile合并成一个大的HFile。另外一种是**major comapction**，它会将所有的HFile都合并成一个大文件。一般来说，major compaction比较耗时，所以一般不在生产环境中让HBase自动运行。我们需要记住的一点是，compaction其实就是对不同IO操作的取舍。如果没有compaction，我们就牺牲了读操作的性能，换得了最高的写性能。如果我们compaction进行的太频繁，就会对网络和硬盘造成压力。除了compaction之外，HBase也提供了类似于索引和Bloom Filter之类的功能来提升读操作性能，这些上一篇博文都提到过，你也可以参考[这篇博文](http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/)，所以在这里我们也不再赘述。
+在之前的博文我们也提到，由于键值对可能同时存在于内存以及硬盘的多个HFile中，服务器在查找键值对的时候要先从最新的部分一直查找到最旧的部分，也就是先从内存中查找，再从新到旧遍历硬盘上的HFile。随着HFile的不断增多，查找的过程会越来越慢，所以服务器需要定期地对多个HFile进行compaction，来减少HFile的查找数量。在HBase中，有两种compaction。一种是minor compaction，它每次只会将两个或多个小的HFile合并成一个大的HFile。另外一种是major comapction，它会将所有的HFile都合并成一个大文件。一般来说，major compaction比较耗时，所以一般不在生产环境中让HBase自动运行。我们需要记住的一点是，compaction其实就是对不同IO操作的取舍。如果没有compaction，我们就牺牲了读操作的性能，换得了最高的写性能。如果我们compaction进行的太频繁，就会对网络和硬盘造成压力。除了compaction之外，HBase也提供了类似于索引和Bloom Filter之类的功能来提升读操作性能，这些上一篇博文都提到过，你也可以参考[这篇博文](http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/)，所以在这里我们也不再赘述。
 
 
 ## 底层存储结构
 在明白了HBase中最基本的数据结构之后，我们再更深入地了解HBase如何把数据存储在文件中。
 
-一个HBase的表会被水平切分成好几份，每一份都叫做一个**Region**。每一个Region都有一个起始的**row key**和结尾的row key。每一个Region又被分配给了不同的节点，这些节点叫做**Region Server**，一个Region Server可以负责多个Region，但是一个Region只可以被一个Region Server管理。一个Region中会有多个**Store**结构，每个Store对应于不同的**Column Family**。一个Store其实就是一个MemStore和多个HFile的包装。这些结构的关系可以由下图所示。值得注意的是，在HBase的实现中，Region Server被命名为**HRegionServer**，Region被命名为**HRegion**。
+一个HBase的表会被水平切分成好几份，每一份都叫做一个Region。每一个Region都有一个起始的row key和结尾的row key。每一个Region又被分配给了不同的节点，这些节点叫做Region Server，一个Region Server可以负责多个Region，但是一个Region只可以被一个Region Server管理。一个Region中会有多个Store结构，每个Store对应于不同的Column Family。一个Store其实就是一个MemStore和多个HFile的包装。这些结构的关系可以由下图所示。值得注意的是，在HBase的实现中，Region Server被命名为**HRegionServer**，Region被命名为**HRegion**。
 
 
 ![]({{ site.baseurl }}/images/hbase-storage-architecture.png)
 *Figure 2: HBase storage architecture*
 
 
-一个Region在增长到一定程度的时候，会被自动**split**成两半。我们也可以人工地对不同的Region进行split操作，甚至可以提前指定split的点。只要登录HBase的UI管理界面，就可以很容易找到对应的操作。
+一个Region在增长到一定程度的时候，会被自动split成两半。我们也可以人工地对不同的Region进行split操作，甚至可以提前指定split的点。只要登录HBase的UI管理界面，就可以很容易找到对应的操作。
 
-我们提到了HFile包含着排序好的键值对。但其实HFile被分成了多个小的block，这样使得split，cache，index，压缩还有读操作都更容易。Block用来保存index，元信息，Bloom Filter，还有键值对数据（**data block**）。这里我们只讨论data block。每一个data block都包含着头信息还有一系列的键值对，每一个键值对其实是一个序列化了的KeyValue实例，也就是一个byte数组。它的格式如下图所示：
+我们提到了HFile包含着排序好的键值对。但其实HFile被分成了多个小的block，这样使得split，cache，index，压缩还有读操作都更容易。Block用来保存index，元信息，Bloom Filter，还有键值对数据（data block）。这里我们只讨论data block。每一个data block都包含着头信息还有一系列的键值对，每一个键值对其实是一个序列化了的KeyValue实例，也就是一个byte数组。它的格式如下图所示：
 
 
 ![]({{ site.baseurl }}/images/hbase-keyvalue-layout.png)
@@ -62,6 +62,7 @@ HBase会自带一个特殊的表，叫做META表（一些介绍老版本HBase的
 1. 首先它会向Zookeeper集群请求存储着META表的HRegionServer；
 2. 得到HRegionServer的地址后，它再从该HRegionServer中的META表读取出包含自己需要的键值对的HRegionServer的地址；
 3. 最后，它访问对应的HRegionServer，读取出自己想要的键值对。
+
 这些中间过程的地址都会被客户端cache到，一直重复利用，知道访问失败为止。因此，客户端之后可以不经过Zookeeper，直接向HRegionServer读取自己想要的键值对。写操作也是同样，要记住它会涉及到我们第一节说到的关于LSM Tree写操作的整个过程。这些提到的步骤如下图所示：
 
 
