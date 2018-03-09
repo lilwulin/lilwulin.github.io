@@ -42,8 +42,34 @@ HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入�
 看到这里，你可能会感到奇怪。为什么我们还没有讨论**HDFS（Hadoop Distributed File System**？HBase难道不是运行在HDFS上的吗？实际上，HBase通过自身的一个FileSystem接口来存储文件，所以底层的文件系统可以是本地文件系统，HDFS，甚至可以是AWS的S3。HDFS只是最常用的方案。HDFS也会把文件切分成不同的block，但这与HBase没有任何关系。
 
 
-## 整体架构
+## 集群架构
+弄懂了底层的存储结构，我们现在可以从整体来看HBase的集群架构。一个HBase的集群由三个重要部分组成：主节点，叫做**HMaster**；从节点，上一节已经提到它叫做**HRegionServer**；还有Zookeeper，一个分布式的协调服务。HRegionServer我们上一节已经有所介绍，我们接下来介绍HMaster和Zookeeper。
 
+一个HMaster节点负责监视HRegionServer的状态，以及分配Region。另外一些管理功能，比如创建，删除以及更新表的操作，都要经由HMaster发起。
+
+Zookeeper可以被视作一个高可用的分布式键值对存储。它可以被运行在一台或者多台机器上，常常被用作分布式系统的配置管理（distributed configuration service），同步（synchronization service），以及名字注册（naming registry）。在HBase的集群中，它被用来维护服务器状态，以及存储META表的地址。我们后面会提到META表。
+
+HRegionServer和HMaster会连接到Zookeeper集群，然后持续地发送心跳信息。HMaster通过Zookeeper来发现可用的HRegionServer，还有检测HRegionServer是否正常运行。HMaster也需要发送心跳信息，这样我们可以运行着两个HMaster节点，如果一个被检测到无法正常运行了，另一个节点就可以切换进去。这些部件的关系可以由下图所示：
+
+
+![]({{ site.baseurl }}/images/hbase-architecture.png)
+*Figure 4: HBase architecture*
+
+
+HBase会自带一个特殊的表，叫做META表（一些介绍老版本HBase的博客还会提到ROOT表，不过在0.96.0版本后就没有了）。这个META表保存了其他表的名字，起始的row key，Region的ID，还有对应的HRegionServer。
+
+我们现在假设一个客户开始从HBase集群中读一些键值对，客户端的cache为空：
+1. 首先它会向Zookeeper集群请求存储着META表的HRegionServer；
+2. 得到HRegionServer的地址后，它再从该HRegionServer中的META表读取出包含自己需要的键值对的HRegionServer的地址；
+3. 最后，它访问对应的HRegionServer，读取出自己想要的键值对。
+这些中间过程的地址都会被客户端cache到，一直重复利用，知道访问失败为止。因此，客户端之后可以不经过Zookeeper，直接向HRegionServer读取自己想要的键值对。写操作也是同样，要记住它会涉及到我们第一节说到的关于LSM Tree写操作的整个过程。这些提到的步骤如下图所示：
+
+
+![]({{ site.baseurl }}/images/hbase-read-write-path.png)
+*Figure 5: HBase architecture*
+
+
+## 总结
 
 
 
