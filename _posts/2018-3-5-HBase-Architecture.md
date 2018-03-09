@@ -63,7 +63,7 @@ HBase会自带一个特殊的表，叫做META表（一些介绍老版本HBase的
 2. 得到HRegionServer的地址后，它再从该HRegionServer中的META表读取出包含自己需要的键值对的HRegionServer的地址；
 3. 最后，它访问对应的HRegionServer，读取出自己想要的键值对。
 
-这些中间过程的地址都会被客户端cache到，一直重复利用，知道访问失败为止。因此，客户端之后可以不经过Zookeeper，直接向HRegionServer读取自己想要的键值对。写操作也是同样，要记住它会涉及到我们第一节说到的关于LSM Tree写操作的整个过程。这些提到的步骤如下图所示：
+这些中间过程的地址都会被客户端cache到，一直重复利用，直到访问失败为止。因此，客户端之后可以不经过Zookeeper，直接向HRegionServer读取自己想要的键值对。写操作也是同样，要记住它会涉及到我们第一节说到的关于LSM Tree写操作的整个过程。这些提到的步骤如下图所示：
 
 
 ![]({{ site.baseurl }}/images/hbase-read-write-path.png)
