@@ -43,7 +43,7 @@ HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入�
 
 
 ## 集群架构
-弄懂了底层的存储结构，我们现在可以从整体来看HBase的集群架构。一个HBase的集群由三个重要部分组成：主节点，叫做**HMaster**；从节点，上一节已经提到它叫做**HRegionServer**；还有Zookeeper，一个分布式的协调服务。HRegionServer我们上一节已经有所介绍，我们接下来介绍HMaster和Zookeeper。
+弄懂了底层的存储结构，我们现在可以从整体来看HBase的集群架构。一个HBase的集群由三个重要部分组成：主节点，叫做HMaster；从节点，上一节已经提到它叫做HRegionServer；还有Zookeeper，一个分布式的协调服务。HRegionServer我们上一节已经有所介绍，我们接下来介绍HMaster和Zookeeper。
 
 一个HMaster节点负责监视HRegionServer的状态，以及分配Region。另外一些管理功能，比如创建，删除以及更新表的操作，都要经由HMaster发起。
 
