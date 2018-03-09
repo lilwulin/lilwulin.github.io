@@ -39,7 +39,7 @@ HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入�
 *Figure 3: KeyValue instance layout*
 
 
-看到这里，你可能会感到奇怪。为什么我们还没有讨论**HDFS（Hadoop Distributed File System**？HBase难道不是运行在HDFS上的吗？实际上，HBase通过自身的一个FileSystem接口来存储文件，所以底层的文件系统可以是本地文件系统，HDFS，甚至可以是AWS的S3。HDFS只是最常用的方案。HDFS也会把文件切分成不同的block，但这与HBase没有任何关系。
+看到这里，你可能会感到奇怪。为什么我们还没有讨论HDFS（Hadoop Distributed File System？HBase难道不是运行在HDFS上的吗？实际上，HBase通过自身的一个FileSystem接口来存储文件，所以底层的文件系统可以是本地文件系统，HDFS，甚至可以是AWS的S3。HDFS只是最常用的方案。HDFS也会把文件切分成不同的block，但这与HBase没有任何关系。
 
 
 ## 集群架构
@@ -79,7 +79,7 @@ HBase会自带一个特殊的表，叫做META表（一些介绍老版本HBase的
 3. 在一个节点上，HBase利用LSM Tree来进行顺序硬盘操作，提升了写性能
 4. 为了不影响读性能，HBase会定期地进行compaction
 
-HBase的优化有很多技巧，比如给row key加盐（salting）使得row key均匀分布，利用split解决Region“过热”，压缩，load balancing，等等。最后提供的延伸阅读提供了很多HBase优化的内容。我们在这里可以很容易地得出HBase的优点，那就是对于传统数据来说很头疼的sharding，对HBase来说是与生俱来的，并且还提供了很多自动的比如compaction，split还有load balancer功能，使得整个集群可以支撑起极其大的数据集。但同时，它的缺点也很明显，对比于传统的数据库，它不支持transaction；极其依赖于row key已经排序好的这个特性，要在其他column建立索引会很痛苦；在数据集较小的时候，HDFS还有网络之间通信的overhead会占到比较大的一个比例。因此我们在选择HBase作为我们的数据存储时，必须对自己的业务心中有数。
+HBase的优化有很多技巧，比如给row key加盐（salting）使得row key均匀分布，利用split解决Region“过热”，压缩，load balancing，等等。最后提供的延伸阅读提供了很多HBase优化的内容。我们在这里可以很容易地得出HBase的优点，那就是对于传统数据库来说很头疼的sharding，对HBase来说可谓与生俱来，并且还自带了自动化的compaction，split还有load balancer等功能，使得整个集群可以支撑起极其大的数据集。但同时，它的缺点也很明显，对比于传统的数据库（RDBMS），它不支持transaction；极其依赖于row key已经排序好的这个特性，要在其他column建立索引会很痛苦；在数据集较小的时候，HDFS还有网络之间通信的overhead会占到比较大的一个比例。因此我们在选择HBase作为我们的数据存储时，必须对自己的业务心中有数。
 
 
 ## 延伸阅读
