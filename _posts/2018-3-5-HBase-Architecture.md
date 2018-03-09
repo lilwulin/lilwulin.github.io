@@ -81,11 +81,11 @@ HBase的优化有很多技巧，比如给row key加盐（salting）使得row key
 
 
 ## 延伸阅读
-1.[An In-Depth Look at the HBase Architecture](https://mapr.com/blog/in-depth-look-hbase-architecture/)
-2.[HBase: The Definitive Guide](http://shop.oreilly.com/product/0636920014348.do)
-3.[Apache HBase I/O – HFile](http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/)
-4.[Apache HBase Write Path](http://blog.cloudera.com/blog/2012/06/hbase-write-path/)
-5.[Apache HBase Region Splitting and Merging](https://hortonworks.com/blog/apache-hbase-region-splitting-and-merging/)
+1. [An In-Depth Look at the HBase Architecture](https://mapr.com/blog/in-depth-look-hbase-architecture/)
+2. [HBase: The Definitive Guide](http://shop.oreilly.com/product/0636920014348.do)
+3. [Apache HBase I/O – HFile](http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/)
+4. [Apache HBase Write Path](http://blog.cloudera.com/blog/2012/06/hbase-write-path/)
+5. [Apache HBase Region Splitting and Merging](https://hortonworks.com/blog/apache-hbase-region-splitting-and-merging/)
 
 
 
