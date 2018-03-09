@@ -39,7 +39,7 @@ HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入�
 *Figure 3: KeyValue instance layout*
 
 
-看到这里，你可能会感到奇怪。为什么我们还没有讨论HDFS（Hadoop Distributed File System？HBase难道不是运行在HDFS上的吗？实际上，HBase通过自身的一个FileSystem接口来存储文件，所以底层的文件系统可以是本地文件系统，HDFS，甚至可以是AWS的S3。HDFS只是最常用的方案。HDFS也会把文件切分成不同的block，但这与HBase没有任何关系。
+看到这里，你可能会感到奇怪。为什么我们还没有讨论HDFS（Hadoop Distributed File System）？HBase难道不是运行在HDFS上的吗？实际上，HBase通过自身的一个FileSystem接口来存储文件，所以底层的文件系统可以是本地文件系统，HDFS，甚至可以是AWS的S3。HDFS只是最常用的方案。HDFS也会把文件切分成不同的block，但这与HBase没有任何关系。
 
 
 ## 集群架构
