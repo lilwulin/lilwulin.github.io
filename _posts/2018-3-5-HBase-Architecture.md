@@ -8,7 +8,7 @@ HBase是[Google Bigtable](https://research.google.com/archive/bigtable-osdi06.pd
 ## 内部数据结构 - 日志结构合并树(LSM Tree)
 要明白HBase的存储和架构，我们首先要理解HBase所依赖的数据结构: 日志结构合并树。这个数据结构的优点和原理我们已经在[这篇博文]({{ site.baseurl }}/LSM-Tree)中提到过，所以这里不再赘述。我们重点关注HBase对这个数据结构的实现。
 
-HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入式日志Write-ahead log），**MemStore**（内存中的数据结构），还有**HFile**（硬盘上的文件）。我们还没有介绍HBase的RegionServer，因此，我们这里先简单地将HBase节点叫做服务器。当服务器想要进行一个写操作（增删改）时，会先将操作append到HLog上，以防数据丢失。在操作条目写入硬盘之后，这条写操作对应的数据（简单地把它看做是一个键值对）会被写入到MemStore中。我们在这里不会讨论MemStore的技术细节，它是一个类似于ordered map的数据结构，内部使用了[skip list](https://en.wikipedia.org/wiki/Skip_list)来达到复杂度为Log(N)的查询速度。随着写操作的不断增多，MemStore也会不停地增长。在增长到一定程度时，MemStore里面的内容会被flush到硬盘上，形成一个HFile。HFile里面保存了之前MemStore中排序好的键值对。在数据都被保存到硬盘上之后，我们就可以销毁旧的HLog，然后创建新的HLog来迎接新的写操作，这个过程就叫做**rolling**。这个写操作的过程我们可以总结如下图：
+HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入式日志Write-ahead log），**MemStore**（内存中的数据结构），还有**HFile**（硬盘上的文件）。我们还没有介绍HBase的RegionServer，因此，我们这里先简单地将HBase节点叫做服务器。当服务器想要进行一个写操作（增删改）时，会先将操作append到HLog上，以防数据丢失。在操作条目写入硬盘之后，这条写操作对应的数据（简单地把它看做是一个键值对）会被写入到MemStore中。我们在这里不会讨论MemStore的技术细节，它是一个类似于ordered map的数据结构，内部使用了[skip list](https://en.wikipedia.org/wiki/Skip_list)来达到复杂度为Log(N)的查询速度。随着写操作的不断增多，MemStore也会不停地增长。在增长到一定程度时，MemStore里面的内容会被flush到硬盘上，形成一个HFile。HFile里面的键值对已经排序好了，因此可以进行很快速的查找。在数据都被保存到硬盘上之后，我们就可以销毁旧的HLog，然后创建新的HLog来迎接新的写操作，这个过程就叫做**rolling**。这个写操作的过程我们可以总结如下图：
 
 
 ![]({{ site.baseurl }}/images/LSM-write-path.png)
@@ -66,10 +66,26 @@ HBase会自带一个特殊的表，叫做META表（一些介绍老版本HBase的
 
 
 ![]({{ site.baseurl }}/images/hbase-read-write-path.png)
+
 *Figure 5: HBase read & write path*
 
 
+
 ## 总结
+我们可以总结出HBase的特点：
+1. HBase是一个使用了主从架构的分布式数据库
+2. 一个HBase的表可以被分配到多台机器中
+3. 在一个节点上，HBase利用LSM Tree来进行顺序硬盘操作，提升了写性能
+4. 为了不影响读性能，HBase会定期地进行compaction
+HBase的优化有很多技巧，比如给row key加盐（salting）使得row key均匀分布，利用split解决Region“过热”，压缩，load balancing，等等。最后提供的延伸阅读提供了很多HBase优化的内容。我们在这里可以很容易地得出HBase的优点，那就是对于传统数据来说很头疼的sharding，对HBase来说是与生俱来的，并且还提供了很多自动的比如compaction，split还有load balancer功能，使得整个集群可以支撑起极其大的数据集。但同时，它的缺点也很明显，对比于传统的数据库，它不支持transaction；极其依赖于row key已经排序好的这个特性，要在其他column建立索引会很痛苦；在数据集较小的时候，HDFS还有网络之间通信的overhead会占到比较大的一个比例。因此我们在选择HBase作为我们的数据存储时，必须对自己的业务心中有数。
+
+
+## 延伸阅读
+1.[An In-Depth Look at the HBase Architecture](https://mapr.com/blog/in-depth-look-hbase-architecture/)
+2.[HBase: The Definitive Guide](http://shop.oreilly.com/product/0636920014348.do)
+3.[Apache HBase I/O – HFile](http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/)
+4.[Apache HBase Write Path](http://blog.cloudera.com/blog/2012/06/hbase-write-path/)
+5.[Apache HBase Region Splitting and Merging](https://hortonworks.com/blog/apache-hbase-region-splitting-and-merging/)
 
 
 
