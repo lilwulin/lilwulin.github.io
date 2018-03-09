@@ -23,6 +23,11 @@ body {
   color: $darkGray;
 }
 
+.page {
+  text-align: justify;
+  text-align-last: justify;
+}
+
 .container {
   margin: 0 auto;
   max-width: 740px;

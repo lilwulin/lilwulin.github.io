@@ -15,7 +15,7 @@ HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入�
 *Figure 1: HBase LSM Tree write path*
 
 
-值得注意的是，由于LSM Tree的使用，我们不能立即删除一个键值对。所以删除操作其实是在键值对上标记一个**tombstone**，这样在之后的**compaction**过程中它再被”垃圾回收“掉。我们之后会讲解一下**compaction**的过程。
+值得注意的是，由于LSM Tree的使用，我们不能立即删除一个键值对。所以删除操作其实是在键值对上标记一个**tombstone**，这样在之后的**compaction**过程中它再被”垃圾回收“掉。我们接下来讲解一下**compaction**的过程。
 
 在之前的博文我们也提到，由于键值对可能同时存在于内存以及硬盘的多个HFile中，服务器在查找键值对的时候要先从最新的部分一直查找到最旧的部分，也就是先从内存中查找，再从新到旧遍历硬盘上的HFile。随着HFile的不断增多，查找的过程会越来越慢，所以服务器需要定期地对多个HFile进行compaction，来减少HFile的查找数量。在HBase中，有两种compaction。一种是**minor compaction**，它每次只会将两个或多个小的HFile合并成一个大的HFile。另外一种是**major comapction**，它会将所有的HFile都合并成一个大文件。一般来说，major compaction比较耗时，所以一般不在生产环境中让HBase自动运行。我们需要记住的一点是，compaction其实就是对不同IO操作的取舍。如果没有compaction，我们就牺牲了读操作的性能，换得了最高的写性能。如果我们compaction进行的太频繁，就会对网络和硬盘造成压力。除了compaction之外，HBase也提供了类似于索引和Bloom Filter之类的功能来提升读操作性能，这些上一篇博文都提到过，你也可以参考[这篇博文](http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/)，所以在这里我们也不再赘述。
 
@@ -36,11 +36,15 @@ HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入�
 
 
 ![]({{ site.baseurl }}/images/hbase-keyvalue-layout.png)
-*Figure 2: KeyValue instance layout*
+*Figure 3: KeyValue instance layout*
 
 
 看到这里，你可能会感到奇怪。为什么我们还没有讨论**HDFS（Hadoop Distributed File System**？HBase难道不是运行在HDFS上的吗？实际上，HBase通过自身的一个FileSystem接口来存储文件，所以底层的文件系统可以是本地文件系统，HDFS，甚至可以是AWS的S3。HDFS只是最常用的方案。HDFS也会把文件切分成不同的block，但这与HBase没有任何关系。
 
 
-
 ## 整体架构
+
+
+
+
+
