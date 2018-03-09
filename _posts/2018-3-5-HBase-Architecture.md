@@ -66,7 +66,7 @@ HBase会自带一个特殊的表，叫做META表（一些介绍老版本HBase的
 
 
 ![]({{ site.baseurl }}/images/hbase-read-write-path.png)
-*Figure 5: HBase architecture*
+*Figure 5: HBase read & write path*
 
 
 ## 总结
