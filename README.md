@@ -1,1 +1,0 @@
-Blog, thoughts, and notes.
