@@ -1,6 +1,5 @@
 ---
 layout: post
-permalink: "/blog/"
 title: HBase的内部存储及架构
 ---
 
