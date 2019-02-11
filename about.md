@@ -11,18 +11,3 @@ permalink: /about/
 
 ### Contact me
 [wulin5@foxmail.com](Lin Wu:wulin5@foxmail.com)
-
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-
-<blockquote>
-<p class="quote">
- Spend each day trying to be a little wiser than you were when you woke up. Discharge your duties faithfully and well. Slug it out one inch at a time, day by day. At the end of the day—if you live long enough—most people get what they deserve.
-</p>
-<p>
-	—Charles T. Munger
-</p>
-</blockquote>
