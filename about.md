@@ -9,5 +9,5 @@ permalink: /about/
 4. 博客只为个人学习总结，水平太次，文章定有各种纰漏，欢迎指正；
 5. 意志力薄弱，无法坚持写文章，打算下周放弃。
 
-### Contact me
+# Contact me
 [wulin5@foxmail.com](Lin Wu:wulin5@foxmail.com)
