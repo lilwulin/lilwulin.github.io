@@ -8,7 +8,7 @@ HBase是[Google Bigtable](https://research.google.com/archive/bigtable-osdi06.pd
 
 <!-- {% include_relative toc.md %} -->
 
-## 内部数据结构 - 日志结构合并树(LSM Tree)
+# 1. 内部数据结构 - 日志结构合并树(LSM Tree)
 要明白HBase的存储和架构，我们首先要理解HBase所依赖的数据结构: 日志结构合并树。这个数据结构的优点和原理我们已经在[这篇博文]({{ site.baseurl }}/LSM-Tree)中提到过，所以这里不再赘述。我们重点关注HBase对这个数据结构的实现。
 
 HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入式日志Write-ahead log），**MemStore**（内存中的数据结构），还有**HFile**（硬盘上的文件）。我们还没有介绍HBase的RegionServer，因此，我们这里先简单地将HBase节点叫做服务器。当服务器想要进行一个写操作（增删改）时，会先将操作append到HLog上，以防数据丢失。在操作条目写入硬盘之后，这条写操作对应的数据（简单地把它看做是一个键值对）会被写入到MemStore中。我们在这里不会讨论MemStore的技术细节，它是一个类似于ordered map的数据结构，内部使用了[skip list](https://en.wikipedia.org/wiki/Skip_list)来达到复杂度为Log(N)的查询速度。随着写操作的不断增多，MemStore也会不停地增长。在增长到一定程度时，MemStore里面的内容会被flush到硬盘上，形成一个HFile。HFile里面的键值对已经排序好了，因此可以进行很快速的查找。在数据都被保存到硬盘上之后，我们就可以销毁旧的HLog，然后创建新的HLog来迎接新的写操作，这个过程就叫做**rolling**。这个写操作的过程我们可以总结如下图：
@@ -20,10 +20,10 @@ HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入�
 
 值得注意的是，由于LSM Tree的使用，我们不能立即删除一个键值对。所以删除操作其实是在键值对上标记一个tombstone，这样在之后的compaction过程中它再被”垃圾回收“掉。我们接下来讲解一下compaction的过程。
 
-在之前的博文我们也提到，由于键值对可能同时存在于内存以及硬盘的多个HFile中，服务器在查找键值对的时候要先从最新的部分一直查找到最旧的部分，也就是先从内存中查找，再从新到旧遍历硬盘上的HFile。随着HFile的不断增多，查找的过程会越来越慢，所以服务器需要定期地对多个HFile进行compaction，来减少HFile的查找数量。在HBase中，有两种compaction。一种是minor compaction，它每次只会将两个或多个小的HFile合并成一个大的HFile。另外一种是major comapction，它会将所有的HFile都合并成一个大文件。一般来说，major compaction比较耗时，所以一般不在生产环境中让HBase自动运行。我们需要记住的一点是，compaction其实就是对不同IO操作的取舍。如果没有compaction，我们就牺牲了读操作的性能，换得了最高的写性能。如果我们compaction进行的太频繁，就会对网络和硬盘造成压力。除了compaction之外，HBase也提供了类似于索引和Bloom Filter之类的功能来提升读操作性能，这些上一篇博文都提到过，你也可以参考[这篇博文](http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/)，所以在这里我们也不再赘述。
+在之前的博文我们也提到，由于键值对可能同时存在于内存以及硬盘的多个HFile中，服务器在查找键值对的时候要先从最新的部分一直查找到最旧的部分，也就是先从内存中查找，再从新到旧遍历硬盘上的HFile。随着HFile的不断增多，查找的过程会越来越慢，所以服务器需要定期地对多个HFile进行compaction，来减少HFile的查找数量。在HBase中，有两种compaction。一种是minor compaction，它每次只会将两个或多个小的HFile合并成一个大的HFile。另外一种是major comapction，它会将所有的HFile都合并成一个大文件。一般来说，major compaction比较耗时，所以一般不在生产环境中让HBase自动运行。我们需要记住的一点是，compaction其实就是对不同IO操作的取舍。如果没有compaction，我们就牺牲了读操作的性能，换得了最高的写性能。如果我们compaction进行的太频繁，就会对网络和硬盘造成压力。除了compaction之外，HBase也提供了类似于索引和Bloom Filter之类的功能来提升读操作性能，这些上一篇博文都提到过，你也可以参考[这篇博文](http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/)，所以在这里我们也不再重复。
 
 
-## 底层存储结构
+# 2. 底层存储结构
 在明白了HBase中最基本的数据结构之后，我们再更深入地了解HBase如何把数据存储在文件中。
 
 一个HBase的表会被水平切分成好几份，每一份都叫做一个Region。每一个Region都有一个起始的row key和结尾的row key。每一个Region又被分配给了不同的节点，这些节点叫做Region Server，一个Region Server可以负责多个Region，但是一个Region只可以被一个Region Server管理。一个Region中会有多个Store结构，每个Store对应于不同的Column Family。一个Store其实就是一个MemStore和多个HFile的包装。这些结构的关系可以由下图所示。值得注意的是，在HBase的实现中，Region Server被命名为**HRegionServer**，Region被命名为**HRegion**。
@@ -45,7 +45,7 @@ HBase的日志结构合并树由三个部分组成：**HLog**（一个预写入�
 看到这里，你可能会感到奇怪。为什么我们还没有讨论HDFS（Hadoop Distributed File System）？HBase难道不是运行在HDFS上的吗？实际上，HBase通过自身的一个FileSystem接口来存储文件，所以底层的文件系统可以是本地文件系统，HDFS，甚至可以是AWS的S3。HDFS只是最常用的方案。HDFS也会把文件切分成不同的block，但这与HBase没有任何关系。
 
 
-## 集群架构
+# 3. 集群架构
 弄懂了底层的存储结构，我们现在可以从整体来看HBase的集群架构。一个HBase的集群由三个重要部分组成：主节点，叫做HMaster；从节点，上一节已经提到它叫做HRegionServer；还有Zookeeper，一个分布式的协调服务。HRegionServer我们上一节已经有所介绍，我们接下来介绍HMaster和Zookeeper。
 
 一个HMaster节点负责监视HRegionServer的状态，以及分配Region。另外一些管理功能，比如创建，删除以及更新表的操作，都要经由HMaster发起。
@@ -75,7 +75,7 @@ HBase会自带一个特殊的表，叫做META表（一些介绍老版本HBase的
 
 
 
-## 总结
+# 4. 总结
 我们可以总结出HBase的特点：
 1. HBase是一个使用了主从架构的分布式数据库
 2. 一个HBase的表可以被分配到多台机器中
@@ -85,7 +85,7 @@ HBase会自带一个特殊的表，叫做META表（一些介绍老版本HBase的
 HBase的优化有很多技巧，比如给row key加盐（salting）使得row key均匀分布，利用split解决Region“过热”，压缩，load balancing，等等。最后提供的延伸阅读提供了很多HBase优化的内容。我们在这里可以很容易地得出HBase的优点，那就是对于传统数据库（RDBMS）来说很头疼的sharding，对HBase来说可谓与生俱来，并且还自带了自动化的compaction，split还有load balancer等功能，使得整个集群可以支撑起极其大的数据集。但同时，它的缺点也很明显，对比于传统的数据库，它不支持transaction；极其依赖于row key已经排序好的这个特性，要在其他column建立索引会很痛苦；在数据集较小的时候，HDFS还有网络之间通信的overhead会占到比较大的一个比例。因此我们在选择HBase作为我们的数据存储时，必须对自己的业务心中有数。
 
 
-## 延伸阅读
+# 延伸阅读
 1. [An In-Depth Look at the HBase Architecture](https://mapr.com/blog/in-depth-look-hbase-architecture/)
 2. [HBase: The Definitive Guide](http://shop.oreilly.com/product/0636920014348.do)
 3. [Apache HBase I/O – HFile](http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/)
